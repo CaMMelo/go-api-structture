@@ -1,11 +1,12 @@
 package main
 
 import (
+	"database/sql"
 	"go-api-structure/data"
 	"go-api-structure/infra"
 	"go-api-structure/inputs"
-	"go-api-structure/model"
 	"go-api-structure/service"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -86,13 +87,39 @@ func (api *API) Toggle(c *gin.Context) {
 	}
 }
 
+func Transactional(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tx, err := db.Begin()
+		if err != nil {
+			log.Println("Failed to start transaction:", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+			return
+		}
+		c.Next()
+		if len(c.Errors) > 0 {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				log.Println("Failed to rollback transaction:", rollbackErr)
+			}
+		} else {
+			if commitErr := tx.Commit(); commitErr != nil {
+				log.Println("Failed to commit transaction:", commitErr)
+			}
+		}
+	}
+}
+
 func main() {
-	conn := make(map[int]model.Todo)
-	repo := infra.NewInMemoryTodoRepository(&conn)
+	db, err := sql.Open("sqlite3", "todos.db")
+	if err != nil {
+		log.Fatal("Failed to connect to the database:", err)
+	}
+
+	repo := infra.NewSQLTodoRepository(db)
+	query := infra.NewSQLQueryRepository(db)
+
 	createService := service.NewCreateTodoService(repo)
 	removeService := service.NewRemoveTodoService(repo)
 	toggleService := service.NewToggleTodoService(repo)
-	query := infra.NewQueryRepository(&conn)
 
 	api := &API{
 		CreateService: createService,
@@ -102,12 +129,13 @@ func main() {
 	}
 
 	router := gin.Default()
+	router.Use(Transactional(db))
 
 	router.POST("/todos", api.Create)
 	router.GET("/todos", api.GetAll)
 	router.GET("/todos/:id", api.GetById)
 	router.DELETE("/todos/:id", api.Delete)
-	router.PUT("/todos/:id", api.Toggle)
+	router.PATCH("/todos/:id/toggle", api.Toggle)
 
 	router.Run("0.0.0.0:8080")
 }

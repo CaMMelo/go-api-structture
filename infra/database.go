@@ -4,7 +4,6 @@ import (
 	"errors"
 	"go-api-structure/inputs"
 	"go-api-structure/model"
-	"go-api-structure/views"
 )
 
 type InMemoryTodoRepository struct {
@@ -45,21 +44,4 @@ func (r *InMemoryTodoRepository) GetByID(id int) (*model.Todo, error) {
 		return nil, errors.New("todo not found")
 	}
 	return &todo, nil
-}
-
-func (r *InMemoryTodoRepository) GetAllViews() ([]views.TodoView, error) {
-	viewsList := []views.TodoView{}
-	for _, todo := range *r.todos {
-		viewsList = append(viewsList, views.NewTodoView(todo.ID, todo.Title, todo.Description, todo.Completed))
-	}
-	return viewsList, nil
-}
-
-func (r *InMemoryTodoRepository) GetViewByID(id int) (*views.TodoView, error) {
-	todo, exists := (*r.todos)[id]
-	if !exists {
-		return nil, errors.New("todo not found")
-	}
-	view := views.NewTodoView(todo.ID, todo.Title, todo.Description, todo.Completed)
-	return &view, nil
 }
