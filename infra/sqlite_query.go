@@ -3,7 +3,6 @@ package infra
 import (
 	"database/sql"
 	"errors"
-	"go-api-structure/model"
 	"go-api-structure/views"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -26,11 +25,11 @@ func (r *SQLQueryRepository) GetAll() ([]views.TodoView, error) {
 
 	viewsList := []views.TodoView{}
 	for rows.Next() {
-		var todo model.Todo
+		var todo views.TodoView
 		if err := rows.Scan(&todo.ID, &todo.Title, &todo.Description, &todo.Completed); err != nil {
 			return nil, err
 		}
-		viewsList = append(viewsList, views.NewTodoView(todo.ID, todo.Title, todo.Description, todo.Completed))
+		viewsList = append(viewsList, todo)
 	}
 
 	return viewsList, nil
@@ -38,11 +37,10 @@ func (r *SQLQueryRepository) GetAll() ([]views.TodoView, error) {
 
 func (r *SQLQueryRepository) GetByID(id int) (*views.TodoView, error) {
 	row := r.db.QueryRow("SELECT id, title, description, completed FROM todos WHERE id = ?", id)
-	var todo model.Todo
+	var todo views.TodoView
 	err := row.Scan(&todo.ID, &todo.Title, &todo.Description, &todo.Completed)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("todo not found")
 	}
-	view := views.NewTodoView(todo.ID, todo.Title, todo.Description, todo.Completed)
-	return &view, err
+	return &todo, err
 }

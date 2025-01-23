@@ -17,7 +17,7 @@ func NewQueryRepository(todos *map[int]model.Todo) *QueryRepository {
 func (r *QueryRepository) GetAll() ([]views.TodoView, error) {
 	viewsList := []views.TodoView{}
 	for _, todo := range *r.todos {
-		viewsList = append(viewsList, views.NewTodoView(todo.ID, todo.Title, todo.Description, todo.Completed))
+		viewsList = append(viewsList, views.TodoView{ID: todo.ID, Title: todo.Title, Description: todo.Description, Completed: todo.Completed})
 	}
 	return viewsList, nil
 }
@@ -27,6 +27,6 @@ func (r *QueryRepository) GetByID(id int) (*views.TodoView, error) {
 	if !exists {
 		return nil, errors.New("todo not found")
 	}
-	view := views.NewTodoView(todo.ID, todo.Title, todo.Description, todo.Completed)
+	view := views.TodoView{ID: todo.ID, Title: todo.Title, Description: todo.Description, Completed: todo.Completed}
 	return &view, nil
 }
